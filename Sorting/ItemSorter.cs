@@ -83,20 +83,23 @@ namespace MagicStorage.Sorting
 
 			List<Item> aggregate = new();
 
-			foreach (Item item in context.items.OrderBy(i => i.type))
-			{
-				if (lastItem is null)
+				foreach (Item item in context.items.OrderBy(i => i.type).ThenBy(i => i.prefix))
 				{
-					lastItem = item.Clone();
-					context.enumeratedSource.Add(new() { item });
-					continue;
-				}
+					if (lastItem is null)
+					{
+						lastItem = item.Clone();
+						context.enumeratedSource.Add(new() { item });
+						continue;
+					}
 
-				if (ItemCombining.CanCombineItems(item, lastItem) && (!actuallyAggregate || lastItem.stack + item.stack > 0))
-				{
-					if (actuallyAggregate) {
-						if (item.favorited) {
-							lastItem.favorited = true;
+					bool combiningPermitted = ItemCombining.CanCombineItems(item, lastItem);
+					if (combiningPermitted && (!actuallyAggregate || lastItem.stack + item.stack > 0))
+					{
+						if (actuallyAggregate)
+						{
+							if (item.favorited)
+							{
+								lastItem.favorited = true;
 
 							foreach (var source in context.enumeratedSource[sourceIndex])
 								source.favorited = true;
@@ -107,18 +110,22 @@ namespace MagicStorage.Sorting
 						lastItem.stack += item.stack;
 					}
 
-					context.enumeratedSource[sourceIndex].Add(item);
-				}
-				else
-				{
-					// Transfer stack from current item to "next item"
-					Item next = item.Clone();
-					int transfer = int.MaxValue - lastItem.stack;
+						context.enumeratedSource[sourceIndex].Add(item);
+					}
+					else
+					{
+						Item next = item.Clone();
 
-					Utility.CallOnStackHooks(lastItem, item, transfer);
+						// Transfer stack from current item to "next item"
+						if (combiningPermitted)
+						{
+							int transfer = int.MaxValue - lastItem.stack;
 
-					next.stack -= transfer;
-					lastItem.stack = int.MaxValue;
+							Utility.CallOnStackHooks(lastItem, item, transfer);
+
+							next.stack -= transfer;
+							lastItem.stack = int.MaxValue;
+						}
 
 					aggregate.Add(lastItem);
 					lastItem = next;
