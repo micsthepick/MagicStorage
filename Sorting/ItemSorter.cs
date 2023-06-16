@@ -7,6 +7,7 @@ using Terraria.GameContent.UI;
 using Terraria.ModLoader;
 using Terraria.ID;
 using MagicStorage.CrossMod;
+using System.Runtime.CompilerServices;
 
 namespace MagicStorage.Sorting
 {
@@ -15,11 +16,13 @@ namespace MagicStorage.Sorting
 		public class AggregateContext {
 			public IEnumerable<Item> items;
 			public IEnumerable<List<Item>> sourceItems;
+			public ConditionalWeakTable<Item, byte[]> savedItemTagIO;
 			internal List<List<Item>> enumeratedSource;
 
 			public AggregateContext(IEnumerable<Item> items) {
 				this.items = items;
 				sourceItems = enumeratedSource = new();
+				savedItemTagIO = new();
 			}
 		}
 
@@ -92,7 +95,7 @@ namespace MagicStorage.Sorting
 						continue;
 					}
 
-					bool combiningPermitted = ItemCombining.CanCombineItems(item, lastItem);
+					bool combiningPermitted = ItemCombining.CanCombineItems(item, lastItem, checkPrefix: true, savedItemTagIO: context.savedItemTagIO);
 					if (combiningPermitted && (!actuallyAggregate || lastItem.stack + item.stack > 0))
 					{
 						if (actuallyAggregate)
